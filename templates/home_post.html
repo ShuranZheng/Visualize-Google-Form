@@ -7,7 +7,16 @@
 {% block content %}
     <div class="container">
         <h1>{{title}}</h1>
-        <p> <b> Google Form ID: </b>  https://docs.google.com/forms/d/{{formID}}/</p>
+        <p> <b> Google Form ID: </b>  https://docs.google.com/forms/d/{{formID}}/... 
+       <button type="button" onClick="refreshPage()"> Refresh </button>
+       <script>
+            function refreshPage(){
+                window.location.reload();
+            } 
+        </script>
+        </p>
+        <p> <b> {{message}} </b> </p>
+        <p> <b> Last response submitted at: </b> {{newest}} </p>
     </div>
 
     {% for questionId in data %}

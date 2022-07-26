@@ -5,9 +5,16 @@ from flask import render_template
 from apiclient import discovery
 from httplib2 import Http
 from oauth2client import client, file, tools
+from typing import List, Dict
+from datetime import datetime
 
 from GFClient import GoogleFormsApiClient
+from GFWatcher import GoogleFormsWatcher
 from database import FormDatabase
+from cache import FormCache, ClientCache
+
+formCache = FormCache()
+clientCache = ClientCache()
 
 app = Flask(__name__)
 
@@ -22,23 +29,54 @@ def home():
 		)
 
 
-@app.route("/result", methods=["POST"])
+@app.route("/result", methods=["GET", "POST"])
 def home_post():
-	formID = request.form['formID']
-	myclient = GoogleFormsApiClient()
-	forms = myclient.get_forms_questions(form_id = formID)
-	responses = myclient.get_forms_responses(form_id=formID)
+	if request.method == 'POST':
+		formID = request.form['formID']
 
-	database = FormDatabase(form_id=formID, forms=forms, responses=responses)
-	result = database.get_result()
-        
+		if formCache.exists(form_id = formID):
+			database = formCache.get(form_id = formID)
+			myclient = clientCache.get(form_id = formID)
+			message = str(database.numRes) + " responses retrieved from cached data. "
+			responses = myclient.get_forms_responses(form_id=formID, 
+					timestamp="timestamp > "+database.lastTime)
+			
+			numNew = database.new_responses(responses)
+			if numNew > 0:
+				formCache.add(form_id = formID, form = database)
+				message = message + str(numNew) + " responses retrieved from Google Forms API."
 
-	return render_template(
-		'home_post.html',
-		title="Retrieving and Visualizing Your Google Forms Responses",
-		formID=formID,
-		data=result
-		)
+		else:
+			myclient = GoogleFormsApiClient(form_id = formID)
+			forms = myclient.get_forms_questions(form_id = formID)
+			responses = myclient.get_forms_responses(form_id=formID, timestamp=None)
+			#print(forms)
+			#print(responses)
+
+			database = FormDatabase(form_id=formID, 
+					forms=forms, 
+					responses=responses
+					)
+
+			formCache.add(form_id = formID, form = database)
+			clientCache.add(form_id = formID, form = myclient)
+			message = str(database.numRes)+" responses retrieved from Google Forms API."
+
+			#watcher = GoogleFormsWatcher(form_id = formID)
+
+		result = database.get_result()
+		newest = datetime.strptime(database.lastTime, "%Y-%m-%dT%H:%M:%S.%fZ")
+	        
+		return render_template(
+			'home_post.html',
+			title="Retrieving and Visualizing Your Google Forms Responses",
+			message = message,
+			newest = newest.strftime("%Y-%m-%d %I:%M %p"),
+			formID=formID,
+			data=result
+			)
+
+	return 'Error'
 
 
 if __name__ == "__main__":
