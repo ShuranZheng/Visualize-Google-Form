@@ -11,14 +11,26 @@ class FormQuestion:
         self.questionId = questionId
         self.title = title
         self.answers = dict()
-        for option in options:
-            self.answers[option['value']] = 0
+        if options is not None:
+            for option in options:
+                self.answers[option['value']] = 0
+
         self.keys = list(self.answers.keys())
         self.values = list(self.answers.values())
 
     def update(self):
         self.keys = list(self.answers.keys())
         self.values = list(self.answers.values())
+
+    def read(self, data):
+        if data is None:
+            return
+
+        self.questionId = data['questionId']
+        self.title = data['title']
+        self.answers = data['answers']
+        self.keys = data['keys']
+        self.values = data['values']
 
 
 class FormDatabase:
@@ -28,36 +40,48 @@ class FormDatabase:
         self.result = dict()
         self.lastTime = None
         self.numRes = 0
+        questions = None
 
-        questions = forms['items']
-        for q in questions:
-            title = q['title']
+        if forms is not None:
+            questions = forms['items']
 
-            if 'questionItem' in q:
-                question = q['questionItem']['question']
-                questionId = question['questionId']
+        if questions is not None:
+            for q in questions:
+                if q is not None:
+                    title = q['title']
+                else:
+                    title = None
 
-                if 'choiceQuestion' in question:
-                    options = question['choiceQuestion']['options']
-                    formQ = FormQuestion(questionId = questionId, 
-                            title = title, 
-                            options = options
-                            )
-                    self.result[questionId] = formQ
+                if 'questionItem' in q:
+                    question = q['questionItem']['question']
+                    questionId = question['questionId']
 
-        for response in responses:
-            self.add_response(response)
+                    if 'choiceQuestion' in question:
+                        options = question['choiceQuestion']['options']
+                        formQ = FormQuestion(questionId = questionId, 
+                                title = title, 
+                                options = options
+                                )
+                        self.result[questionId] = formQ
+
+        if responses is not None:
+            for response in responses:
+                self.add_response(response)
 
 
     def new_responses(self, responses):
         number = 0
-        for response in responses:
-            self.add_response(response)
-            number = number + 1
+        if responses is not None:
+            for response in responses:
+                self.add_response(response)
+                number = number + 1
         return number
 
 
     def add_response(self, response):
+        if response is None:
+            return
+
         self.numRes = self.numRes + 1
 
         if self.lastTime is None:
@@ -83,9 +107,23 @@ class FormDatabase:
         return self.result
 
 
-    #def read(self, data):
-    #    self.responses = None
-    #    self.result = dict()
+    def read(self, data):
+        if data is None:
+            return
+
+        self.result = dict()
+        self.lastTime = data['lastTime']
+        self.numRes = data['numRes']
+
+        res = data['result']
+        for questionId in res:
+            formQ = FormQuestion(questionId = None, 
+                        title = None, 
+                        options = None
+                        )
+            formQ.read(res[questionId])
+            self.result[questionId] = formQ
+
 
 
 
