@@ -5,8 +5,15 @@ from apiclient import discovery
 from httplib2 import Http
 from oauth2client import client, file, tools
 from google.cloud import pubsub_v1
+from googleapiclient.errors import HttpError
 
 import json
+
+
+def get_json(obj):
+    return json.loads(
+        json.dumps(obj, default=lambda o: getattr(o, '__dict__', str(o)))
+        )
 
 class GoogleFormsApiClient:
 
@@ -23,33 +30,55 @@ class GoogleFormsApiClient:
     timeout = 5.0
 
     def __init__(self, form_id):
-        self.store = file.Storage('token.json')
-        self.flow = client.flow_from_clientsecrets('client_secret.json', self.SCOPES)
-        self.creds = tools.run_flow(self.flow, self.store)
-        self.service = discovery.build('forms', 'v1', 
-                http=self.creds.authorize(Http()), 
-                discoveryServiceUrl=self.DISCOVERY_DOC, 
-                static_discovery=False
-                )
+        if form_id is None:
+            self.store = None
+            self.flow = None
+            self.creds = None
+            self.service = None
+            
+        else:
+            self.store = file.Storage('token.json')
+            self.flow = client.flow_from_clientsecrets('client_secret.json', self.SCOPES)
+            self.creds = tools.run_flow(self.flow, self.store)
+            #print(get_json(self.creds.authorize(Http())))
+            self.service = discovery.build('forms', 'v1', 
+                    http=self.creds.authorize(Http()), 
+                    discoveryServiceUrl=self.DISCOVERY_DOC, 
+                    static_discovery=False
+                    )
+            #print(get_json(self.service))
 
-        publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(self.project_id, self.topic_id)
+            #http = Http()
+            #json_service = get_json(self.service)
+            #http.request = json_service['_http']['request']
+            #print(get_json(http))
 
-        watch = {
-            "watch": {
-                "target": {
-                    "topic": {
-                        "topicName": topic_path
-                    }
-                },
-            "eventType": "RESPONSES"
+            publisher = pubsub_v1.PublisherClient()
+            topic_path = publisher.topic_path(self.project_id, self.topic_id)
+
+            watch = {
+                "watch": {
+                    "target": {
+                        "topic": {
+                            "topicName": topic_path
+                        }
+                    },
+                "eventType": "RESPONSES"
+                }
             }
-        }
-        #result = self.service.forms().watches().create(formId=form_id, body=watch).execute()
-        #print(result)
-        #AllWatches = self.service.forms().watches().list(formId=form_id).execute()
-        #print(AllWatches)
 
+            result = self.service.forms().watches().create(formId=form_id, body=watch).execute()
+            
+            #try:
+            #    result = self.service.forms().watches().create(formId=form_id, body=watch).execute()
+            #except HttpError as e:
+            #    print(e._get_reason())
+
+            #AllWatches = self.service.forms().watches().list(formId=form_id).execute()
+            #print(AllWatches)
+
+    def set_service(self, service):
+        self.service = service
 
     def get_forms_questions(self, form_id) -> dict:
         request = self.service.forms().get(formId=form_id).execute()

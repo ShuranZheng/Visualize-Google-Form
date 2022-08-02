@@ -13,6 +13,13 @@ from GFWatcher import GoogleFormsWatcher
 from database import FormDatabase
 from cache import FormCache, ClientCache
 import json
+import logging
+import httplib2
+
+httplib2.debuglevel = 4
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 formCache = FormCache()
 clientCache = ClientCache()
@@ -44,7 +51,7 @@ def home_post():
 			myclient = clientCache.get(form_id = formID)
 		else:
 			myclient = GoogleFormsApiClient(form_id = formID)
-			clientCache.add(form_id = formID, form = myclient)
+			clientCache.add(form_id = formID, client = myclient)
 		
 		if formCache.exists(form_id = formID):
 			database = formCache.get(form_id = formID)
