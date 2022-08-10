@@ -1,0 +1,99 @@
+{% extends 'layout.html' %}
+
+{% block css %}
+  <link href="{{ url_for('static', filename='css/home.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>{{title}}</h1>
+        <p> <b> {{message}} </b> 
+        <button type="button" onClick="refreshPage()"> Refresh the form</button>
+        <script>
+            function refreshPage(){
+                window.location.reload();
+            } 
+
+            setInterval(function() {
+                  window.location.reload();
+                }, 60000); 
+
+        </script>
+        </p>
+        <p> <b> Last response submitted at: </b> {{newest}} </p>
+    </div>
+
+    <h2> Results for Each Question </h2>
+
+    {% for questionId in data %}
+    <div>
+        <p> <b> Question: {{data[questionId].title}} </b> </p>
+    </div>
+    <div class="chart-container" style="position: relative; height:260px; left: 50%;  width:400px; margin: 0 0 40px -200px;"> 
+        <canvas id={{questionId}} width=400px height=260px> </canvas> 
+    </div>
+    <script >
+        var config = {
+            type: 'bar',
+            data: {
+                labels: {{data[questionId].keys | tojson}},
+                datasets: [
+                {
+                    backgroundColor : "rgba(151,187,205,0.5)",
+                    borderColor : "rgba(151,187,205,1)",
+                    label: 'Number of answers',
+                    data: {{data[questionId].values | tojson}},
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        ticks: {
+                        stepSize: 1
+                        }
+                    }
+                }
+            }
+        };
+        new Chart(document.getElementById({{questionId|tojson}}), config);  
+    </script>
+    {% endfor %}
+
+    <h2> Results for Each Pair of Questions </h2>
+
+    {% for questionIds in data_double %}
+    <div>
+        <p> <b> Question: {{data_double[questionIds].title}} </b> </p>
+    </div>
+    <div class="chart-container" style="position: relative; height:260px; left: 50%;  width:400px; margin: 0 0 40px -200px;"> 
+        <canvas id={{questionIds}} width=400px height=260px> </canvas> 
+    </div>
+    <script >
+        var config = {
+            type: 'bar',
+            data: {
+                labels: {{data_double[questionIds].keys | tojson}},
+                datasets: [
+                {
+                    backgroundColor : "rgba(151,187,205,0.5)",
+                    borderColor : "rgba(151,187,205,1)",
+                    label: 'Number of answers',
+                    data: {{data_double[questionIds].values | tojson}},
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        ticks: {
+                        stepSize: 1
+                        }
+                    }
+                }
+            }
+        };
+        new Chart(document.getElementById({{questionIds|tojson}}), config);  
+    </script>
+    {% endfor %}
+
+
+{% endblock %}

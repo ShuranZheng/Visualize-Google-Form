@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+
+{% block css %}
+  <link href="{{ url_for('static', filename='css/home.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1> {{title}} </h1>
+
+        <input type="checkbox" id="vehicle1" name="vehicle1" value="Bike">
+        <label for="vehicle1"> I have a bike</label><br>
+        <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+        <label for="vehicle2"> I have a car</label><br>
+        <input type="checkbox" id="vehicle3" name="vehicle3" value="Boat">
+        <label for="vehicle3"> I have a boat</label><br>
+
+        <select id ="dropDownId"> <!-- give an id to select box-->
+
+            <option value="">Select Option</option>
+            <option value="physics">physics</option>
+            <option value="chemistry">chemistry</option>
+            <option value="biology">biology</option>
+            <option value="maths">maths</option>
+            <option value="cs">cs</option>
+            <option value="electrical">electrical</option>
+        </select>
+    <br>
+    <input class="SubmitButton" type="submit" name="SUBMITBUTTON"  value="Submit" style="font-size:20px; " />
+
+    <script src = "//code.jquery.com/jquery-3.0.0.min.js"></script> <!-- add jquery library-->
+    <script type = "text/javascript">
+        $('.SubmitButton').click(function(){ // on submit button click
+
+        var urldata = $('#dropDownId :selected').val(); // get the selected  option value
+        window.open("http://"+urldata+".html") // open a new window. here you need to change the url according to your wish.
+        });
+
+    </script>
+    </div>
+
+
+{% endblock %}

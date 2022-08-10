@@ -8,8 +8,9 @@ from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI, client
 
 import pandas as pd
 import json
-from record import FormRecords, ClientRecords
+from record import FormRecords, ClientRecords, DoubleRecords
 from GFClient import GoogleFormsApiClient
+from access import ClientAccess
 
 MAX_SIZE = 1000
 
@@ -42,6 +43,42 @@ class FormCache:
     def __init__(self):
         self.forms = dict()
         self.records = FormRecords()
+
+    def exists(self, form_id):
+        if form_id in self.forms:
+            print('form in cache')
+            return True
+        else:
+            return self.records.exists(form_id)
+
+    def get(self, form_id):
+        if form_id in self.forms:
+            return self.forms[form_id]
+        else:
+            form = self.records.get(form_id)
+            if form is not None:
+                while len(self.forms) >= MAX_SIZE:
+                    self.forms.popitem()
+                self.forms[form_id] = form
+            return form
+
+
+    def add(self, form_id, form):
+        self.records.add(form_id, form)
+
+        if form_id in self.forms:
+            self.forms[form_id] = form
+        else:
+            while len(self.forms) >= MAX_SIZE:
+                self.forms.popitem()
+            self.forms[form_id] = form
+
+
+
+class DoubleCache:
+    def __init__(self):
+        self.forms = dict()
+        self.records = DoubleRecords()
 
     def exists(self, form_id):
         if form_id in self.forms:
@@ -112,11 +149,13 @@ class ClientCache:
         #print(json_service.keys())
         json_request = json_service['_http']['request']['credentials']
 
-        http = get_http(json_request['client_id'], 
+        client_access = ClientAccess(json_request['client_id'], 
                 json_request['client_secret'], 
                 json_request['access_token'],
                 json_request['refresh_token']
                 )
+
+        http = client_access.get_http()
 
         self.records.add(form_id = form_id, client = json_request)
 

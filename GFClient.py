@@ -8,7 +8,9 @@ from google.cloud import pubsub_v1
 from googleapiclient.errors import HttpError
 
 import json
-
+import httplib2
+import logging
+import sys
 
 def get_json(obj):
     return json.loads(
@@ -18,7 +20,7 @@ def get_json(obj):
 class GoogleFormsApiClient:
 
     SCOPES = [
-        "https://www.googleapis.com/auth/forms.body.readonly",
+        "https://www.googleapis.com/auth/forms.body",
         "https://www.googleapis.com/auth/forms.responses.readonly",
     ]
 
@@ -41,6 +43,13 @@ class GoogleFormsApiClient:
             self.flow = client.flow_from_clientsecrets('client_secret.json', self.SCOPES)
             self.creds = tools.run_flow(self.flow, self.store)
             #print(get_json(self.creds.authorize(Http())))
+
+            httplib2.debuglevel = 4
+            logger = logging.getLogger()
+            logger.setLevel(logging.DEBUG)
+            logger.addHandler(logging.StreamHandler(sys.stdout))
+
+
             self.service = discovery.build('forms', 'v1', 
                     http=self.creds.authorize(Http()), 
                     discoveryServiceUrl=self.DISCOVERY_DOC, 
@@ -56,6 +65,8 @@ class GoogleFormsApiClient:
             publisher = pubsub_v1.PublisherClient()
             topic_path = publisher.topic_path(self.project_id, self.topic_id)
 
+            #topic = publisher.create_topic(request={"name": topic_path})
+
             watch = {
                 "watch": {
                     "target": {
@@ -67,12 +78,13 @@ class GoogleFormsApiClient:
                 }
             }
 
-            result = self.service.forms().watches().create(formId=form_id, body=watch).execute()
+            #result = self.service.forms().watches().create(formId=form_id, body=watch).execute()
             
-            #try:
-            #    result = self.service.forms().watches().create(formId=form_id, body=watch).execute()
-            #except HttpError as e:
-            #    print(e._get_reason())
+            try:
+                result = self.service.forms().watches().create(formId=form_id, 
+                    body=watch).execute()
+            except HttpError as e:
+                print(e._get_reason())
 
             #AllWatches = self.service.forms().watches().list(formId=form_id).execute()
             #print(AllWatches)
@@ -87,7 +99,10 @@ class GoogleFormsApiClient:
 
     def get_forms_responses(self, form_id, timestamp) -> List[Dict]:
         responses = list()
-        request = self.service.forms().responses().list(formId=form_id, filter=timestamp, pageToken=None)
+        request = self.service.forms().responses().list(formId=form_id, 
+            filter=timestamp, 
+            pageToken=None
+            )
 
         while request is not None:
             response = request.execute()
