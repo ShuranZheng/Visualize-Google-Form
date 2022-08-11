@@ -40,7 +40,7 @@ def home():
 		#print(request.form['formID'])
 		formID = request.form['formID']
 		#print(formID)
-		return redirect(url_for('select',formID = formID))
+		return redirect(url_for('result',formID = formID))
 
 	return render_template(
 		'home.html',
